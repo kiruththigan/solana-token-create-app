@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProviders } from "./provider";
 import Navbar from "@/components/layouts/navbar";
+import Footer from "@/components/layouts/footer";
+import { Toaster } from "@/components/ui/toaster";
 require("@solana/wallet-adapter-react-ui/styles.css");
 
 const inter = Inter({ subsets: ["latin"] });
@@ -19,10 +21,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} dark`}>
+      <body className={`${inter.className} dark bg-indigo-950`}>
         <SolanaWalletProviders>
           <Navbar />
           {children}
+          <Toaster />
+          <Footer />
         </SolanaWalletProviders>
       </body>
     </html>
