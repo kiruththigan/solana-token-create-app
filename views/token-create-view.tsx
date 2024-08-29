@@ -1,5 +1,5 @@
 "use client";
-import React, { CSSProperties, useCallback, useState } from "react";
+import React, { CSSProperties, useCallback, useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   Keypair,
@@ -30,12 +30,40 @@ import { ClockLoader, BounceLoader, FadeLoader } from "react-spinners";
 import { toast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useDropzone } from "react-dropzone";
+import Image from "next/image";
+import { CloudUpload, Edit, Trash2 } from "lucide-react";
 
 const TokenCreateView = () => {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
-  const [file, setFile] = useState<File>();
+  const [isHovered, setIsHovered] = useState(false);
+
+  const { getRootProps, getInputProps, open, acceptedFiles } = useDropzone({
+    noClick: true,
+    noKeyboard: true,
+    accept: {
+      "image/jpeg": [],
+      "image/png": [],
+      "image/webp": [],
+    },
+  });
+
+  useEffect(() => {
+    if (acceptedFiles?.length > 0) {
+      setFile(acceptedFiles[0]);
+    }
+  }, [acceptedFiles]);
+
+  const [file, setFile] = useState<any>();
   const [tokenURI, setTokenURI] = useState<string>("");
   const [tokenMintAddress, setTokenMintAddress] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -71,6 +99,9 @@ const TokenCreateView = () => {
 
       try {
         const metadataUrl = await uploadMetadata(token);
+        if (metadataUrl === "false") {
+          return;
+        }
         console.log(metadataUrl);
 
         const createMetadataInstruction =
@@ -150,7 +181,7 @@ const TokenCreateView = () => {
           action: (
             <ToastAction altText="Try again" className="p-0">
               <Link
-                href={`https://explorer.solana.com/address/${mintKeypair.publicKey.toString()}/?cluster=devnet`}
+                href={`https://explorer.solana.com/address/${mintKeypair.publicKey.toString()}?cluster=devnet`}
                 target="_blank"
                 className="p-2"
               >
@@ -226,17 +257,31 @@ const TokenCreateView = () => {
 
   // METADATA UPLOAD TO IPFS
   const uploadMetadata = async (token: any) => {
-    const { name, symbol, decimals, amount, image, description } = token;
+    const { name, symbol, decimals, amount, description } = token;
 
-    if (!name || !symbol || !image || !description) {
-      return console.log("Please fill all the fields");
+    if (
+      !file ||
+      !name ||
+      !symbol ||
+      !amount ||
+      !description ||
+      !(parseInt(amount) > 0)
+    ) {
+      toast({
+        title: "Oh Something wrong!",
+        description: `Please fill all the fields!`,
+      });
+      console.log("Please fill all the fields");
+      return "false";
     }
+
+    const imageUrl: string = await uploadImagePinata(file);
 
     const metadata = JSON.stringify({
       name,
       symbol,
       decimals,
-      image,
+      image: imageUrl,
       description,
     });
 
@@ -266,78 +311,139 @@ const TokenCreateView = () => {
   };
 
   return (
-    <div className="w-full max-w-[350px]">
-      <div className="mb-5 text-xl font-medium">
-        <h1>Create New Token</h1>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        <div>
-          <Label>Image</Label>
-          <Input type="file" onChange={handleImageChange} />
-        </div>
-        <div>
-          <Label>Name</Label>
-          <Input
-            type="text"
-            placeholder="Name"
-            onChange={(e) => setToken({ ...token, name: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Symbol</Label>
-          <Input
-            type="text"
-            placeholder="Symbol"
-            onChange={(e) => setToken({ ...token, symbol: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Decimals</Label>
-          <Input
-            type="number"
-            placeholder="Decimals"
-            onChange={(e) => setToken({ ...token, decimals: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Amount</Label>
-          <Input
-            type="number"
-            placeholder="Amount"
-            onChange={(e) => setToken({ ...token, amount: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Description</Label>
-          <Input
-            type="text"
-            placeholder="Description"
-            onChange={(e) =>
-              setToken({ ...token, description: e.target.value })
-            }
-          />
-        </div>
-        <div className="w-full">
-          <Button
-            onClick={() => createToken(token)}
-            disabled={isLoading}
-            className="w-full space-x-2"
-          >
-            {isLoading && (
-              <BounceLoader
-                color={"#000"}
-                loading={isLoading}
-                cssOverride={override}
-                size={20}
-                aria-label="Loading Spinner"
-                data-testid="loader"
+    <div className="w-full max-w-[400px] mt-[80px] md:mt-10">
+      <Card className="bg-gradient-to-r from-indigo-800 to-purple-800 shadow-lg">
+        <CardHeader>
+          <CardTitle>Create New Token</CardTitle>
+          <CardDescription>create your own solana token</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div>
+              {/* <Label>Image</Label>
+              <Input type="file" onChange={handleImageChange} /> */}
+              <div {...getRootProps({ className: "dropzone" })}>
+                <input {...getInputProps()} />
+                {file ? (
+                  <div
+                    className="relative w-[150px] h-[150px] mx-auto"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                  >
+                    <Image
+                      src={URL.createObjectURL(file)}
+                      alt={file?.path}
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      className="w-[150px] h-[150px] rounded-lg hover:bg-opacity-50"
+                    />
+                    {isHovered && (
+                      <div className="absolute top-0 right-0 bottom-0 left-0 flex justify-center items-center gap-10 bg-[#00000088] rounded-lg">
+                        <Edit
+                          onClick={open}
+                          className="size-8 cursor-pointer hover:scale-110 "
+                        />
+                        <Trash2
+                          onClick={() => setFile("")}
+                          className="size-8 cursor-pointer hover:scale-110 "
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="cursor-pointer rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center space-y-1 p-4 mx-auto border border-dashed border-[#000000] dark:border-[#000000]"
+                    onClick={open}
+                  >
+                    <div>
+                      <CloudUpload className="size-8" />
+                    </div>
+                    <div className="text-[10px] text-center">
+                      Click or drag image.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <Label>Name</Label>
+              <Input
+                type="text"
+                placeholder="Name"
+                onChange={(e) => setToken({ ...token, name: e.target.value })}
               />
-            )}
-            <div>Create Token</div>
-          </Button>
-        </div>
-      </div>
+            </div>
+            <div>
+              <Label>Symbol</Label>
+              <Input
+                type="text"
+                placeholder="Symbol"
+                onChange={(e) => setToken({ ...token, symbol: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Decimals</Label>
+              <Input
+                type="number"
+                placeholder="Decimals"
+                onChange={(e) =>
+                  setToken({ ...token, decimals: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Label>Amount</Label>
+              <Input
+                type="number"
+                placeholder="Amount"
+                onChange={(e) => setToken({ ...token, amount: e.target.value })}
+                min={0}
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Input
+                type="text"
+                placeholder="Description"
+                onChange={(e) =>
+                  setToken({ ...token, description: e.target.value })
+                }
+              />
+            </div>
+            <div className="w-full">
+              {!publicKey ? (
+                <Button
+                  size={"lg"}
+                  disabled={true}
+                  className="w-full space-x-2 bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg"
+                >
+                  <div>Please connect your wallet</div>
+                </Button>
+              ) : (
+                <Button
+                  size={"lg"}
+                  onClick={() => createToken(token)}
+                  disabled={isLoading}
+                  className="w-full space-x-2 bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg"
+                >
+                  {isLoading && (
+                    <BounceLoader
+                      color={"#000"}
+                      loading={isLoading}
+                      cssOverride={override}
+                      size={20}
+                      aria-label="Loading Spinner"
+                      data-testid="loader"
+                    />
+                  )}
+                  <div>Create Token</div>
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
