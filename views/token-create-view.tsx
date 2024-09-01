@@ -201,21 +201,11 @@ const TokenCreateView = () => {
         setIsLoading(false);
       }
     },
-    [publicKey, connection, sendTransaction]
+    [publicKey, connection, sendTransaction, file, setFile]
   );
-
-  // IMAGE UPLOAD TO IPFS
-  const handleImageChange = async (event: any) => {
-    const file = event.target.files[0];
-    if (file) {
-      const imageUrl: string = await uploadImagePinata(file);
-      setToken({ ...token, image: imageUrl });
-    }
-  };
 
   const uploadImagePinata = async (file: any) => {
     if (file) {
-      setIsLoading(true);
       try {
         const formData = new FormData();
         formData.append("file", file);
@@ -249,8 +239,6 @@ const TokenCreateView = () => {
         }
       } catch (error: any) {
         console.log("Error while upload image to pinata ", error);
-      } finally {
-        setIsLoading(false);
       }
     }
   };
@@ -265,7 +253,7 @@ const TokenCreateView = () => {
       !symbol ||
       !amount ||
       !description ||
-      !(parseInt(amount) > 0)
+      !(parseFloat(amount) > 0.0)
     ) {
       toast({
         title: "Oh Something wrong!",
@@ -276,6 +264,7 @@ const TokenCreateView = () => {
     }
 
     const imageUrl: string = await uploadImagePinata(file);
+    setToken({ ...token, image: imageUrl });
 
     const metadata = JSON.stringify({
       name,
@@ -319,98 +308,138 @@ const TokenCreateView = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div>
-              {/* <Label>Image</Label>
+            {tokenMintAddress ? (
+              <Link
+                href={`https://explorer.solana.com/address/${tokenMintAddress}?cluster=devnet`}
+                target="_blank"
+              >
+                <Card className="w-full max-w-[220px] mx-auto text-center space-y-4 cursor-pointer bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-600 hover:to-purple-600 shadow-2xl shadow-purple-800 p-5 border-0">
+                  <div className="flex justify-center items-center gap-4">
+                    <div className=" flex justify-center items-center">
+                      {token.image && (
+                        <Image
+                          src={token.image}
+                          alt={file?.path}
+                          width={0}
+                          height={0}
+                          sizes="100vw"
+                          className="w-[70px] h-[70px] rounded-full hover:bg-opacity-50"
+                        />
+                      )}
+                    </div>
+                    <div className="text-[18px] font-medium">
+                      <div>{token.name}</div>
+                      <div className="text-[#c4c4c4]">{token.symbol}</div>
+                    </div>
+                  </div>
+                  <div className="text-[#fff] text-[12px]">
+                    Click View Your Token
+                  </div>
+                </Card>
+              </Link>
+            ) : (
+              <div>
+                <div>
+                  {/* <Label>Image</Label>
               <Input type="file" onChange={handleImageChange} /> */}
-              <div {...getRootProps({ className: "dropzone" })}>
-                <input {...getInputProps()} />
-                {file ? (
-                  <div
-                    className="relative w-[150px] h-[150px] mx-auto"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                  >
-                    <Image
-                      src={URL.createObjectURL(file)}
-                      alt={file?.path}
-                      width={0}
-                      height={0}
-                      sizes="100vw"
-                      className="w-[150px] h-[150px] rounded-lg hover:bg-opacity-50"
-                    />
-                    {isHovered && (
-                      <div className="absolute top-0 right-0 bottom-0 left-0 flex justify-center items-center gap-10 bg-[#00000088] rounded-lg">
-                        <Edit
-                          onClick={open}
-                          className="size-8 cursor-pointer hover:scale-110 "
+                  <div {...getRootProps({ className: "dropzone" })}>
+                    <input {...getInputProps()} />
+                    {file ? (
+                      <div
+                        className="relative w-[150px] h-[150px] mx-auto"
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
+                      >
+                        <Image
+                          src={URL.createObjectURL(file)}
+                          alt={file?.path}
+                          width={0}
+                          height={0}
+                          sizes="100vw"
+                          className="w-[150px] h-[150px] rounded-lg hover:bg-opacity-50"
                         />
-                        <Trash2
-                          onClick={() => setFile("")}
-                          className="size-8 cursor-pointer hover:scale-110 "
-                        />
+                        {isHovered && (
+                          <div className="absolute top-0 right-0 bottom-0 left-0 flex justify-center items-center gap-10 bg-[#00000088] rounded-lg">
+                            <Edit
+                              onClick={open}
+                              className="size-8 cursor-pointer hover:scale-110 "
+                            />
+                            <Trash2
+                              onClick={() => setFile("")}
+                              className="size-8 cursor-pointer hover:scale-110 "
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center space-y-1 p-4 mx-auto border border-dashed border-[#000000] dark:border-[#000000]"
+                        onClick={open}
+                      >
+                        <div>
+                          <CloudUpload className="size-8" />
+                        </div>
+                        <div className="text-[10px] text-center">
+                          Click or drag image.
+                        </div>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div
-                    className="cursor-pointer rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center space-y-1 p-4 mx-auto border border-dashed border-[#000000] dark:border-[#000000]"
-                    onClick={open}
-                  >
-                    <div>
-                      <CloudUpload className="size-8" />
-                    </div>
-                    <div className="text-[10px] text-center">
-                      Click or drag image.
-                    </div>
-                  </div>
-                )}
+                </div>
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    type="text"
+                    placeholder="Name"
+                    onChange={(e) =>
+                      setToken({ ...token, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Symbol</Label>
+                  <Input
+                    type="text"
+                    placeholder="Symbol"
+                    onChange={(e) =>
+                      setToken({ ...token, symbol: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Decimals</Label>
+                  <Input
+                    type="number"
+                    placeholder="Decimals"
+                    onChange={(e) =>
+                      setToken({ ...token, decimals: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label>Amount</Label>
+                  <Input
+                    type="number"
+                    placeholder="Amount"
+                    onChange={(e) =>
+                      setToken({ ...token, amount: e.target.value })
+                    }
+                    min={0}
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Input
+                    type="text"
+                    placeholder="Description"
+                    onChange={(e) =>
+                      setToken({ ...token, description: e.target.value })
+                    }
+                  />
+                </div>
               </div>
-            </div>
-            <div>
-              <Label>Name</Label>
-              <Input
-                type="text"
-                placeholder="Name"
-                onChange={(e) => setToken({ ...token, name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Symbol</Label>
-              <Input
-                type="text"
-                placeholder="Symbol"
-                onChange={(e) => setToken({ ...token, symbol: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Decimals</Label>
-              <Input
-                type="number"
-                placeholder="Decimals"
-                onChange={(e) =>
-                  setToken({ ...token, decimals: e.target.value })
-                }
-              />
-            </div>
-            <div>
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                placeholder="Amount"
-                onChange={(e) => setToken({ ...token, amount: e.target.value })}
-                min={0}
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Input
-                type="text"
-                placeholder="Description"
-                onChange={(e) =>
-                  setToken({ ...token, description: e.target.value })
-                }
-              />
-            </div>
+            )}
+
             <div className="w-full">
               {!publicKey ? (
                 <Button
@@ -423,7 +452,14 @@ const TokenCreateView = () => {
               ) : (
                 <Button
                   size={"lg"}
-                  onClick={() => createToken(token)}
+                  onClick={() => {
+                    if (tokenMintAddress) {
+                      setTokenMintAddress("");
+                      setFile("");
+                    } else {
+                      createToken(token);
+                    }
+                  }}
                   disabled={isLoading}
                   className="w-full space-x-2 bg-gradient-to-r from-indigo-700 to-purple-700 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg"
                 >
