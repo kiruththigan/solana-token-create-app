@@ -73,3 +73,7 @@
   @apply !h-10 !rounded-[9999px] !text-[14px] !leading-5 !font-medium !border !border-solid !border-[#006EF1] !flex !justify-center !items-center !gap-1 !bg-transparent !bg-blue-900;
   font-family: var(--font-helvetica) !important;
 }
+
+.text-destructive {
+  @apply text-red-500;
+}
